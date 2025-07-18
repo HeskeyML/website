@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank - Plan Your Future</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .banner {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: #555;
+            transition: all 0.3s;
+        }
+
+        .tab:hover, .tab.active {
+            color: #2c3e50;
+            border-bottom: 2px solid #2c3e50;
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-size: 1rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #2c3e50;
+        }
+
+        .clear-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-25%);
+            cursor: pointer;
+            color: #999;
+            font-size: 1.2rem;
+        }
+
+        .clear-icon:hover {
+            color: #e74c3c;
+        }
+
+        canvas {
+            max-width: 100%;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .banner {
+                font-size: 1.5rem;
+                padding: 1.5rem;
+            }
+
+            .tab {
+                font-size: 1rem;
+                padding: 0.75rem 1.5rem;
+            }
+
+            .content {
+                margin: 1rem;
+                padding: 0 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="banner">Tank - Plan Your Future</div>
+    <div class="tabs">
+        <div class="tab active" data-tab="details">Enter Your Details</div>
+        <div class="tab" data-tab="future">See Your Future</div>
+    </div>
+    <div class="content">
+        <div id="details" class="tab-content active">
+            <div class="input-group">
+                <label for="salary">Annual Salary (£)</label>
+                <input type="number" id="salary" placeholder="e.g. 30000">
+                <span class="clear-icon" data-input="salary">✖</span>
+            </div>
+            <div class="input-group">
+                <label for="mortgage-size">Mortgage Size (£)</label>
+                <input type="number" id="mortgage-size" placeholder="e.g. 200000">
+                <span class="clear-icon" data-input="mortgage-size">✖</span>
+            </div>
+            <div class="input-group">
+                <label for="mortgage-payment">Monthly Mortgage Payment (£)</label>
+                <input type="number" id="mortgage-payment" placeholder="e.g. 1000">
+                <span class="clear-icon" data-input="mortgage-payment">✖</span>
+            </div>
+            <div class="input-group">
+                <label for="mortgage-rate">Mortgage Interest Rate (%)</label>
+                <input type="number" step="0.1" id="mortgage-rate" placeholder="e.g. 3.5">
+                <span class="clear-icon" data-input="mortgage-rate">✖</span>
+            </div>
+            <div class="input-group">
+                <label for="monthly-savings">Monthly Savings (£)</label>
+                <input type="number" id="monthly-savings" placeholder="e.g. 500">
+                <span class="clear-icon" data-input="monthly-savings">✖</span>
+            </div>
+            <div class="input-group">
+                <label for="savings-rate">Savings Interest Rate (%)</label>
+                <input type="number" step="0.1" id="savings-rate" placeholder="e.g. 2.0">
+                <span class="clear-icon" data-input="savings-rate">✖</span>
+            </div>
+        </div>
+        <div id="future" class="tab-content">
+            <h2>Savings Over Time</h2>
+            <canvas id="savingsChart"></canvas>
+            <h2>Mortgage and Equity</h2>
+            <canvas id="mortgageChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+
+                if (tab.dataset.tab === 'future') {
+                    updateCharts();
+                }
+            });
+        });
+
+        // LocalStorage handling
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            const savedValue = localStorage.getItem(input.id);
+            if (savedValue) input.value = savedValue;
+
+            input.addEventListener('input', () => {
+                localStorage.setItem(input.id, input.value);
+            });
+        });
+
+        // Clear input functionality
+        const clearIcons = document.querySelectorAll('.clear-icon');
+        clearIcons.forEach(icon => {
+            icon.addEventListener('click', () => {
+                const inputId = icon.dataset.input;
+                const input = document.getElementById(inputId);
+                input.value = '';
+                localStorage.removeItem(inputId);
+            });
+        });
+
+        // Chart initialization
+        const savingsChart = new Chart(document.getElementById('savingsChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Savings (£)',
+                    data: [],
+                    borderColor: '#2ecc71',
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Years' } },
+                    y: { title: { display: true, text: 'Amount (£)' }, beginAtZero: true }
+                }
+            }
+        });
+
+        const mortgageChart = new Chart(document.getElementById('mortgageChart'), {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Mortgage Remaining (£)',
+                        data: [],
+                        backgroundColor: '#e74c3c'
+                    },
+                    {
+                        label: 'House Equity (£)',
+                        data: [],
+                        backgroundColor: '#2ecc71'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Years' } },
+                    y: { title: { display: true, text: 'Amount (£)' } }
+                }
+            }
+        });
+
+        function updateCharts() {
+            const monthlySavings = parseFloat(localStorage.getItem('monthly-savings')) || 0;
+            const savingsRate = (parseFloat(localStorage.getItem('savings-rate')) || 0) / 100;
+            const mortgageSize = parseFloat(localStorage.getItem('mortgage-size')) || 0;
+            const monthlyPayment = parseFloat(localStorage.getItem('mortgage-payment')) || 0;
+            const mortgageRate = (parseFloat(localStorage.getItem('mortgage-rate')) || 0) / 100;
+
+            // Calculate savings with compound interest (monthly)
+            const years = 30;
+            const labels = Array.from({ length: years + 1 }, (_, i) => i);
+            const savingsData = [];
+            let savings = 0;
+            for (let year = 0; year <= years; year++) {
+                for (let month = 0; month < 12; month++) {
+                    savings = savings * (1 + savingsRate / 12) + monthlySavings;
+                }
+                savingsData.push(Math.round(savings));
+            }
+
+            // Calculate mortgage and equity
+            let remainingMortgage = mortgageSize;
+            const mortgageData = [];
+            const equityData = [];
+            for (let year = 0; year <= years; year++) {
+                for (let month = 0; month < 12; month++) {
+                    if (remainingMortgage <= 0) break;
+                    const interest = remainingMortgage * (mortgageRate / 12);
+                    const principal = monthlyPayment - interest;
+                    remainingMortgage -= principal;
+                    if (remainingMortgage < 0) remainingMortgage = 0;
+                }
+                mortgageData.push(Math.round(remainingMortgage));
+                equityData.push(Math.round(mortgageSize - remainingMortgage));
+            }
+
+            // Update charts
+            savingsChart.data.labels = labels;
+            savingsChart.data.datasets[0].data = savingsData;
+            savingsChart.update();
+
+            mortgageChart.data.labels = labels;
+            mortgageChart.data.datasets[0].data = mortgageData;
+            mortgageChart.data.datasets[1].data = equityData;
+            mortgageChart.update();
+        }
+    </script>
+</body>
+</html>
